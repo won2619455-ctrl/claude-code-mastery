@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>카운터 앱</title>
+  <!-- Tailwind CSS CDN: 인터넷에서 스타일 파일을 불러옵니다 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+
+  <!-- 카드 컨테이너: 흰색 박스, 그림자, 둥근 모서리 -->
+  <div class="bg-white rounded-2xl shadow-lg p-10 flex flex-col items-center gap-8">
+
+    <!-- 제목 -->
+    <h1 class="text-3xl font-bold text-gray-700">카운터 앱</h1>
+
+    <!-- 숫자 표시 영역 -->
+    <!-- id="count-display" : JavaScript에서 이 요소를 찾아 숫자를 바꿀 때 사용 -->
+    <div class="text-8xl font-extrabold text-blue-600" id="count-display">
+      0
+    </div>
+
+    <!-- 버튼 3개를 가로로 나란히 배치 -->
+    <div class="flex gap-4">
+
+      <!-- 감소 버튼 (-1) -->
+      <!-- onclick="decrease()" : 버튼을 클릭하면 decrease 함수를 실행 -->
+      <button
+        onclick="decrease()"
+        class="w-20 h-20 rounded-full bg-blue-200 hover:bg-blue-300 text-blue-800 text-3xl font-bold transition-colors duration-200"
+      >
+        -
+      </button>
+
+      <!-- 리셋 버튼 (0으로 초기화) -->
+      <button
+        onclick="reset()"
+        class="w-20 h-20 rounded-full bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold transition-colors duration-200"
+      >
+        리셋
+      </button>
+
+      <!-- 증가 버튼 (+1) -->
+      <button
+        onclick="increase()"
+        class="w-20 h-20 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-3xl font-bold transition-colors duration-200"
+      >
+        +
+      </button>
+
+    </div>
+  </div>
+
+  <script>
+    // 현재 카운트 값을 저장하는 변수 (처음에는 0)
+    let count = 0;
+
+    // HTML에서 숫자를 보여주는 요소를 찾아 변수에 저장
+    // document.getElementById() : id로 HTML 요소를 찾는 함수
+    const display = document.getElementById('count-display');
+
+    // 화면의 숫자를 최신 count 값으로 업데이트하는 함수
+    function updateDisplay() {
+      display.textContent = count; // 요소 안의 텍스트를 count 값으로 교체
+
+      // 숫자가 양수면 파란색, 음수면 빨간색으로 표시
+      if (count < 0) {
+        display.className = 'text-8xl font-extrabold text-red-500';
+      } else {
+        display.className = 'text-8xl font-extrabold text-blue-600';
+      }
+    }
+
+    // +1 버튼을 눌렀을 때 실행되는 함수
+    function increase() {
+      count = count + 1; // count를 1 늘린다
+      updateDisplay();   // 화면을 새 값으로 업데이트
+    }
+
+    // -1 버튼을 눌렀을 때 실행되는 함수
+    function decrease() {
+      count = count - 1; // count를 1 줄인다
+      updateDisplay();   // 화면을 새 값으로 업데이트
+    }
+
+    // 리셋 버튼을 눌렀을 때 실행되는 함수
+    function reset() {
+      count = 0;       // count를 0으로 초기화
+      updateDisplay(); // 화면을 새 값으로 업데이트
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash",
+      "PowerShell(Start-Process python -ArgumentList \"-m\", \"http.server\", \"8080\" -WorkingDirectory \"C:\\\\Users\\\\Won Il Choi\\\\workspace\\\\claude-code-mastery\\\\resume\" -WindowStyle Hidden)"
+    ]
+  },
+  "outputStyle": "Beginner Friendly",
+  "plansDirectory": ".claude/plans/",
+  "permissons": {
+    "deny": [],
+    "ask": [],
+    "outputStyle": "Explanatory"
+  }
+}

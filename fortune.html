@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>오늘의 운세</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap');
+
+    body {
+      background: radial-gradient(ellipse at top, #1a0533 0%, #0d0d1a 60%, #000000 100%);
+      font-family: 'Noto Serif KR', serif;
+      min-height: 100vh;
+    }
+
+    /* 별 배경 */
+    .stars {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .star {
+      position: absolute;
+      border-radius: 50%;
+      background: white;
+      animation: twinkle var(--dur) ease-in-out infinite;
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.2; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.4); }
+    }
+
+    /* 수정구슬 */
+    .orb {
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%,
+        rgba(180, 120, 255, 0.9) 0%,
+        rgba(80, 40, 160, 0.8) 40%,
+        rgba(20, 10, 60, 0.95) 100%);
+      box-shadow:
+        0 0 40px rgba(150, 80, 255, 0.6),
+        0 0 80px rgba(100, 50, 200, 0.3),
+        inset 0 0 30px rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      position: relative;
+    }
+    .orb::before {
+      content: '';
+      position: absolute;
+      top: 20%;
+      left: 22%;
+      width: 35%;
+      height: 25%;
+      background: radial-gradient(ellipse, rgba(255,255,255,0.5) 0%, transparent 70%);
+      border-radius: 50%;
+      transform: rotate(-30deg);
+    }
+    .orb:hover {
+      transform: scale(1.06);
+      box-shadow:
+        0 0 60px rgba(180, 100, 255, 0.8),
+        0 0 120px rgba(120, 60, 220, 0.4),
+        inset 0 0 40px rgba(255, 255, 255, 0.15);
+    }
+    .orb.spinning {
+      animation: orbPulse 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes orbPulse {
+      from { transform: scale(1); box-shadow: 0 0 40px rgba(150,80,255,0.6), 0 0 80px rgba(100,50,200,0.3); }
+      to   { transform: scale(1.08); box-shadow: 0 0 80px rgba(200,120,255,0.9), 0 0 160px rgba(150,80,255,0.5); }
+    }
+
+    /* 카드 슬라이드인 */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fortune-card {
+      animation: slideUp 0.5s ease forwards;
+    }
+
+    /* 별점 */
+    .star-filled { color: #f59e0b; }
+    .star-empty  { color: #374151; }
+
+    /* 스크롤바 */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(150,80,255,0.4); border-radius: 2px; }
+  </style>
+</head>
+<body class="relative">
+
+  <!-- 별 배경 -->
+  <div class="stars" id="stars"></div>
+
+  <div class="relative z-10 max-w-lg mx-auto px-4 py-10">
+
+    <!-- 헤더 -->
+    <div class="text-center mb-10">
+      <p class="text-purple-400 text-sm tracking-widest mb-2">✦ MYSTIC ORACLE ✦</p>
+      <h1 class="text-white text-4xl font-bold mb-1">오늘의 운세</h1>
+      <p id="today-date" class="text-gray-400 text-sm"></p>
+    </div>
+
+    <!-- 생년월일 입력 -->
+    <div class="bg-white/5 border border-purple-500/30 rounded-2xl p-6 mb-8 backdrop-blur-sm">
+      <label class="block text-purple-300 text-sm mb-3 tracking-wide">생년월일을 입력하세요</label>
+      <div class="flex gap-3">
+        <input id="birthdate" type="date"
+          class="flex-1 bg-white/10 border border-purple-500/40 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400/50"
+          style="color-scheme: dark;">
+        <select id="gender"
+          class="bg-white/10 border border-purple-500/40 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-purple-400 cursor-pointer">
+          <option value="female">여성</option>
+          <option value="male">남성</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- 수정구슬 -->
+    <div class="flex flex-col items-center mb-10">
+      <div class="orb" id="orb" onclick="revealFortune()">
+        <div class="absolute inset-0 flex items-center justify-center">
+          <span id="orb-icon" class="text-5xl select-none">🔮</span>
+        </div>
+      </div>
+      <p id="orb-hint" class="text-purple-300/70 text-sm mt-5">수정구슬을 클릭하면 운세가 열립니다</p>
+    </div>
+
+    <!-- 운세 결과 -->
+    <div id="result" class="hidden space-y-4">
+
+      <!-- 총운 -->
+      <div class="fortune-card bg-gradient-to-br from-purple-900/40 to-indigo-900/40 border border-purple-500/30 rounded-2xl p-5 backdrop-blur-sm">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-white font-bold text-lg">✨ 총운</h2>
+          <div id="stars-overall" class="flex gap-1"></div>
+        </div>
+        <p id="text-overall" class="text-gray-300 text-sm leading-relaxed"></p>
+      </div>
+
+      <!-- 2열 그리드 -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="fortune-card bg-white/5 border border-pink-500/30 rounded-2xl p-4 backdrop-blur-sm">
+          <h3 class="text-pink-300 font-bold mb-2">💕 애정운</h3>
+          <div id="stars-love" class="flex gap-0.5 mb-2"></div>
+          <p id="text-love" class="text-gray-300 text-xs leading-relaxed"></p>
+        </div>
+        <div class="fortune-card bg-white/5 border border-yellow-500/30 rounded-2xl p-4 backdrop-blur-sm">
+          <h3 class="text-yellow-300 font-bold mb-2">💰 재물운</h3>
+          <div id="stars-money" class="flex gap-0.5 mb-2"></div>
+          <p id="text-money" class="text-gray-300 text-xs leading-relaxed"></p>
+        </div>
+        <div class="fortune-card bg-white/5 border border-blue-500/30 rounded-2xl p-4 backdrop-blur-sm">
+          <h3 class="text-blue-300 font-bold mb-2">💼 직업운</h3>
+          <div id="stars-work" class="flex gap-0.5 mb-2"></div>
+          <p id="text-work" class="text-gray-300 text-xs leading-relaxed"></p>
+        </div>
+        <div class="fortune-card bg-white/5 border border-green-500/30 rounded-2xl p-4 backdrop-blur-sm">
+          <h3 class="text-green-300 font-bold mb-2">🌿 건강운</h3>
+          <div id="stars-health" class="flex gap-0.5 mb-2"></div>
+          <p id="text-health" class="text-gray-300 text-xs leading-relaxed"></p>
+        </div>
+      </div>
+
+      <!-- 오늘의 조언 -->
+      <div class="fortune-card bg-gradient-to-r from-amber-900/30 to-orange-900/30 border border-amber-500/30 rounded-2xl p-5 backdrop-blur-sm">
+        <h3 class="text-amber-300 font-bold mb-2">🌟 오늘의 조언</h3>
+        <p id="text-advice" class="text-gray-200 text-sm leading-relaxed italic"></p>
+      </div>
+
+      <!-- 럭키 정보 -->
+      <div class="fortune-card grid grid-cols-3 gap-3">
+        <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+          <p class="text-gray-400 text-xs mb-1">럭키 컬러</p>
+          <p id="lucky-color" class="text-white font-bold text-sm"></p>
+          <div id="color-dot" class="w-6 h-6 rounded-full mx-auto mt-2"></div>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+          <p class="text-gray-400 text-xs mb-1">럭키 넘버</p>
+          <p id="lucky-number" class="text-white font-bold text-2xl mt-1"></p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-xl p-3 text-center">
+          <p class="text-gray-400 text-xs mb-1">오늘의 방향</p>
+          <p id="lucky-direction" class="text-white font-bold text-sm mt-1"></p>
+        </div>
+      </div>
+
+      <!-- 다시보기 -->
+      <button onclick="resetFortune()"
+        class="w-full py-3 rounded-xl border border-purple-500/50 text-purple-300 text-sm hover:bg-purple-500/20 transition-colors mt-2">
+        🔄 다른 운세 보기
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    // 오늘 날짜 표시
+    const now = new Date();
+    document.getElementById('today-date').textContent =
+      `${now.getFullYear()}년 ${now.getMonth()+1}월 ${now.getDate()}일 (${['일','월','화','수','목','금','토'][now.getDay()]}요일)`;
+
+    // 별 생성
+    const starsEl = document.getElementById('stars');
+    for (let i = 0; i < 120; i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      const size = Math.random() * 2.5 + 0.5;
+      s.style.cssText = `
+        width:${size}px; height:${size}px;
+        top:${Math.random()*100}%; left:${Math.random()*100}%;
+        --dur:${(Math.random()*3+2).toFixed(1)}s;
+        animation-delay:${(Math.random()*4).toFixed(1)}s;
+      `;
+      starsEl.appendChild(s);
+    }
+
+    // 운세 데이터 풀
+    const fortuneData = {
+      overall: [
+        { score: 5, text: "별들이 강하게 당신을 돕는 날입니다. 오늘은 어떤 시작도 좋은 결과로 이어질 것이며, 자신감을 갖고 행동하세요." },
+        { score: 4, text: "긍정적인 에너지가 충만한 하루입니다. 작은 노력도 큰 결실을 맺을 가능성이 높으니 적극적으로 임하세요." },
+        { score: 4, text: "흐름이 좋은 날입니다. 주변의 신호를 잘 읽으면 예상치 못한 행운을 잡을 수 있습니다." },
+        { score: 3, text: "평온한 하루가 예상됩니다. 무리하기보다는 차분히 일상을 가꾸는 데 집중하면 만족감을 얻을 수 있습니다." },
+        { score: 3, text: "변화의 조짐이 보이는 날입니다. 섣불리 결정하기보다 더 많은 정보를 모아두는 것이 유리합니다." },
+        { score: 2, text: "다소 에너지가 낮은 날입니다. 오늘은 새로운 도전보다 현재를 유지하는 데 집중하세요." },
+      ],
+      love: [
+        { score: 5, text: "인연의 실이 강하게 당겨지는 날. 마음을 표현하면 좋은 반응이 돌아옵니다." },
+        { score: 4, text: "소중한 사람과의 시간이 더욱 빛날 것입니다. 진심 어린 대화를 나눠보세요." },
+        { score: 3, text: "감정 표현을 미루지 마세요. 작은 한마디가 관계를 깊게 만듭니다." },
+        { score: 3, text: "상대방의 말에 귀 기울이는 것이 오늘의 핵심입니다. 경청이 사랑을 키웁니다." },
+        { score: 2, text: "오해가 생기기 쉬운 날입니다. 중요한 대화는 내일로 미루는 것도 방법입니다." },
+      ],
+      money: [
+        { score: 5, text: "재물의 기운이 강하게 흐릅니다. 투자나 협상에 좋은 타이밍입니다." },
+        { score: 4, text: "예상치 못한 수익의 가능성이 있습니다. 기회를 놓치지 마세요." },
+        { score: 3, text: "수입과 지출의 균형을 맞추는 날. 충동구매는 자제하세요." },
+        { score: 3, text: "장기적인 재무 계획을 세우기에 좋은 날입니다. 미래를 준비하세요." },
+        { score: 2, text: "불필요한 지출이 발생하기 쉬운 날. 지갑을 조금 더 단단히 잡으세요." },
+      ],
+      work: [
+        { score: 5, text: "업무 능력이 최고조에 달하는 날. 어려운 과제도 척척 해낼 수 있습니다." },
+        { score: 4, text: "팀워크가 빛을 발합니다. 협업을 통해 더 큰 성과를 이룰 수 있습니다." },
+        { score: 3, text: "집중력이 필요한 날입니다. 한 가지에 몰두하면 좋은 결과가 따라옵니다." },
+        { score: 3, text: "새로운 아이디어가 샘솟는 날. 메모하는 습관이 큰 도움이 됩니다." },
+        { score: 2, text: "실수가 잦을 수 있는 날. 꼼꼼히 검토하는 습관이 중요합니다." },
+      ],
+      health: [
+        { score: 5, text: "몸과 마음이 모두 활기찬 날. 운동을 시작하기에 가장 좋은 타이밍입니다." },
+        { score: 4, text: "에너지가 넘칩니다. 좋아하는 야외 활동을 즐기세요." },
+        { score: 3, text: "균형 잡힌 식사와 충분한 수면이 오늘의 핵심 키워드입니다." },
+        { score: 3, text: "가벼운 스트레칭으로 몸을 깨워주세요. 작은 습관이 건강을 지킵니다." },
+        { score: 2, text: "피로가 쌓이기 쉬운 날. 무리하지 말고 충분한 휴식을 취하세요." },
+      ],
+      advice: [
+        "오늘 당신이 내리는 결정은 미래의 당신을 위한 선물입니다.",
+        "작은 친절이 큰 파문을 만듭니다. 오늘 누군가에게 먼저 미소 지어보세요.",
+        "완벽하지 않아도 됩니다. 지금 이 순간 최선을 다하는 것으로 충분합니다.",
+        "새로운 시작을 두려워하지 마세요. 모든 대가는 첫걸음에서 시작됩니다.",
+        "내면의 목소리에 귀 기울이세요. 직감이 최선의 나침반입니다.",
+        "오늘의 작은 노력이 내일의 큰 변화를 만듭니다. 포기하지 마세요.",
+        "감사하는 마음이 행운을 불러옵니다. 오늘 세 가지 감사를 찾아보세요.",
+      ],
+      colors: [
+        { name: '로열 퍼플', hex: '#7C3AED' },
+        { name: '골든 옐로', hex: '#F59E0B' },
+        { name: '딥 로즈', hex: '#E11D48' },
+        { name: '오션 블루', hex: '#0EA5E9' },
+        { name: '포레스트 그린', hex: '#16A34A' },
+        { name: '선셋 오렌지', hex: '#EA580C' },
+        { name: '미스틱 화이트', hex: '#F1F5F9' },
+        { name: '미드나잇 네이비', hex: '#1E3A5F' },
+      ],
+      directions: ['북쪽 ↑', '남쪽 ↓', '동쪽 →', '서쪽 ←', '북동쪽 ↗', '남서쪽 ↙'],
+    };
+
+    // 시드 기반 랜덤 (생년월일 + 오늘 날짜)
+    function seededRand(seed) {
+      let x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    }
+    function pickItem(arr, seed) {
+      return arr[Math.floor(seededRand(seed) * arr.length)];
+    }
+
+    function getSeed() {
+      const bd = document.getElementById('birthdate').value || '2000-01-01';
+      const dateNum = parseInt(bd.replace(/-/g, ''));
+      const todayNum = parseInt(`${now.getFullYear()}${now.getMonth()+1}${now.getDate()}`);
+      return dateNum * 0.001 + todayNum * 0.0001;
+    }
+
+    function renderStars(containerId, score) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = '';
+      for (let i = 1; i <= 5; i++) {
+        const s = document.createElement('span');
+        s.textContent = '★';
+        s.className = 'text-sm ' + (i <= score ? 'star-filled' : 'star-empty');
+        el.appendChild(s);
+      }
+    }
+
+    function revealFortune() {
+      const orb = document.getElementById('orb');
+      const hint = document.getElementById('orb-hint');
+      const orbIcon = document.getElementById('orb-icon');
+
+      // 스피닝 애니메이션
+      orb.classList.add('spinning');
+      orbIcon.textContent = '✨';
+      hint.textContent = '운명의 별들이 정렬되고 있습니다...';
+
+      setTimeout(() => {
+        orb.classList.remove('spinning');
+        orbIcon.textContent = '🔮';
+        hint.textContent = '당신의 운세가 열렸습니다';
+
+        const seed = getSeed();
+        const s = (i) => seed + i * 3.7;
+
+        // 운세 선택
+        const overall   = pickItem(fortuneData.overall,   s(1));
+        const love      = pickItem(fortuneData.love,      s(2));
+        const money     = pickItem(fortuneData.money,     s(3));
+        const work      = pickItem(fortuneData.work,      s(4));
+        const health    = pickItem(fortuneData.health,    s(5));
+        const advice    = pickItem(fortuneData.advice,    s(6));
+        const color     = pickItem(fortuneData.colors,    s(7));
+        const direction = pickItem(fortuneData.directions,s(8));
+        const number    = Math.floor(seededRand(s(9)) * 99) + 1;
+
+        // 렌더링
+        document.getElementById('text-overall').textContent  = overall.text;
+        document.getElementById('text-love').textContent     = love.text;
+        document.getElementById('text-money').textContent    = money.text;
+        document.getElementById('text-work').textContent     = work.text;
+        document.getElementById('text-health').textContent   = health.text;
+        document.getElementById('text-advice').textContent   = `"${advice}"`;
+        document.getElementById('lucky-color').textContent   = color.name;
+        document.getElementById('lucky-number').textContent  = number;
+        document.getElementById('lucky-direction').textContent = direction;
+        document.getElementById('color-dot').style.background = color.hex;
+
+        renderStars('stars-overall', overall.score);
+        renderStars('stars-love',    love.score);
+        renderStars('stars-money',   money.score);
+        renderStars('stars-work',    work.score);
+        renderStars('stars-health',  health.score);
+
+        document.getElementById('result').classList.remove('hidden');
+        document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 1800);
+    }
+
+    function resetFortune() {
+      document.getElementById('result').classList.add('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+
+</body>
+</html>

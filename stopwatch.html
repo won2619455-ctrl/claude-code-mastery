@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>스톱워치</title>
+  <!-- TailwindCSS를 CDN으로 불러옵니다. 설치 없이 클래스만으로 스타일링 가능합니다 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-screen bg-gray-900 flex items-center justify-center">
+  <!--
+    min-h-screen  : 화면 전체 높이 사용
+    bg-gray-900   : 어두운 배경색
+    flex items-center justify-center : 카드를 화면 정중앙에 배치
+  -->
+
+  <!-- 카드 컨테이너 -->
+  <div class="bg-gray-800 rounded-3xl shadow-2xl p-12 flex flex-col items-center gap-8 w-80">
+    <!--
+      bg-gray-800   : 카드 배경 (배경보다 조금 밝은 회색)
+      rounded-3xl   : 모서리를 크게 둥글게
+      shadow-2xl    : 큰 그림자로 입체감
+      p-12          : 내부 여백 (padding)
+      flex flex-col : 자식 요소를 세로로 나열
+      items-center  : 가로 중앙 정렬
+      gap-8         : 자식 요소 사이 간격
+      w-80          : 카드 너비 고정 (320px)
+    -->
+
+    <!-- 제목 -->
+    <h1 class="text-white text-2xl font-bold tracking-widest uppercase">
+      Stopwatch
+    </h1>
+    <!--
+      tracking-widest : 글자 사이 간격을 넓게
+      uppercase       : 대문자로 표시
+    -->
+
+    <!-- 시간 표시 영역 -->
+    <div id="display"
+         class="text-green-400 text-6xl font-mono font-bold tabular-nums tracking-tight">
+      00:00:00
+    </div>
+    <!--
+      text-green-400  : 초록색 계열 숫자 (클래식 디지털 시계 느낌)
+      text-6xl        : 매우 큰 글자 크기
+      font-mono       : 고정폭 폰트 → 숫자가 바뀌어도 레이아웃이 흔들리지 않음
+      tabular-nums    : 숫자 너비를 모두 동일하게 → 숫자가 바뀔 때 떨림 방지
+    -->
+
+    <!-- 버튼 영역 -->
+    <div class="flex gap-4">
+
+      <!-- 시작 / 일시정지 버튼 -->
+      <button id="startStopBtn"
+              onclick="toggleStartStop()"
+              class="px-6 py-3 rounded-xl text-white font-semibold text-sm
+                     bg-green-500 hover:bg-green-400 active:scale-95
+                     transition-all duration-150 w-28">
+        시작
+      </button>
+      <!--
+        px-6 py-3         : 좌우/상하 패딩
+        rounded-xl        : 버튼 모서리 둥글게
+        hover:bg-green-400: 마우스를 올리면 색이 밝아짐
+        active:scale-95   : 클릭할 때 버튼이 살짝 줄어드는 효과
+        transition-all    : 모든 변화에 부드러운 애니메이션 적용
+        w-28              : 버튼 너비 고정 → 텍스트가 바뀌어도 크기 유지
+      -->
+
+      <!-- 리셋 버튼 -->
+      <button onclick="resetTimer()"
+              class="px-6 py-3 rounded-xl text-white font-semibold text-sm
+                     bg-gray-600 hover:bg-gray-500 active:scale-95
+                     transition-all duration-150 w-28">
+        리셋
+      </button>
+
+    </div>
+  </div>
+
+  <script>
+    // ─── 상태 변수 ───────────────────────────────────────────
+    let isRunning = false;   // 현재 타이머가 실행 중인지 여부
+    let elapsedMs = 0;       // 지금까지 누적된 시간 (밀리초)
+    let startTime = null;    // 타이머를 시작한 시점 (Date.now() 값)
+    let timerId = null;      // setInterval이 반환하는 ID (나중에 중지할 때 사용)
+
+    // ─── DOM 요소 참조 ───────────────────────────────────────
+    const display = document.getElementById('display');         // 시간 표시 div
+    const startStopBtn = document.getElementById('startStopBtn'); // 시작/정지 버튼
+
+    /**
+     * 밀리초(ms)를 "HH:MM:SS" 문자열로 변환하는 함수
+     * 예) 3723000ms → "01:02:03"
+     */
+    function formatTime(ms) {
+      const totalSeconds = Math.floor(ms / 1000); // 전체 초 계산 (소수점 버림)
+      const hours   = Math.floor(totalSeconds / 3600);       // 시간 단위
+      const minutes = Math.floor((totalSeconds % 3600) / 60); // 분 단위
+      const seconds = totalSeconds % 60;                       // 초 단위
+
+      // String(n).padStart(2, '0') : 한 자리 숫자 앞에 "0"을 채워 두 자리로 만들기
+      // 예) 5 → "05"
+      return [hours, minutes, seconds]
+        .map(n => String(n).padStart(2, '0'))
+        .join(':'); // 배열을 ":"로 이어붙여서 "HH:MM:SS" 형태로 만들기
+    }
+
+    /**
+     * 화면의 시간 표시를 최신 상태로 갱신하는 함수
+     * setInterval로 매 10ms마다 호출됩니다
+     */
+    function updateDisplay() {
+      // Date.now() : 현재 시각 (밀리초 단위의 Unix 타임스탬프)
+      // 타이머 시작 시점으로부터 얼마나 지났는지 계산
+      const currentElapsed = elapsedMs + (Date.now() - startTime);
+      display.textContent = formatTime(currentElapsed);
+    }
+
+    /**
+     * 시작/일시정지 버튼을 눌렀을 때 호출되는 함수
+     * 실행 중이면 → 일시정지, 멈춰 있으면 → 시작
+     */
+    function toggleStartStop() {
+      if (isRunning) {
+        // ── 일시정지 처리 ──────────────────────────────
+        clearInterval(timerId);                         // 반복 갱신 중지
+        elapsedMs += Date.now() - startTime;            // 지금까지 경과 시간 누적
+        isRunning = false;
+
+        // 버튼 텍스트와 색상을 "시작" 상태로 변경
+        startStopBtn.textContent = '시작';
+        startStopBtn.classList.replace('bg-yellow-500', 'bg-green-500');
+        startStopBtn.classList.replace('hover:bg-yellow-400', 'hover:bg-green-400');
+      } else {
+        // ── 시작 처리 ──────────────────────────────────
+        startTime = Date.now();                         // 현재 시각을 시작점으로 기록
+        // setInterval : 두 번째 인자(ms) 간격으로 첫 번째 함수를 반복 호출
+        timerId = setInterval(updateDisplay, 10);       // 10ms마다 화면 갱신
+        isRunning = true;
+
+        // 버튼 텍스트와 색상을 "일시정지" 상태로 변경
+        startStopBtn.textContent = '일시정지';
+        startStopBtn.classList.replace('bg-green-500', 'bg-yellow-500');
+        startStopBtn.classList.replace('hover:bg-green-400', 'hover:bg-yellow-400');
+      }
+    }
+
+    /**
+     * 리셋 버튼을 눌렀을 때 호출되는 함수
+     * 모든 상태를 초기값으로 되돌립니다
+     */
+    function resetTimer() {
+      clearInterval(timerId);    // 실행 중인 타이머 중지
+      isRunning = false;
+      elapsedMs = 0;             // 누적 시간 초기화
+      startTime = null;
+      display.textContent = '00:00:00'; // 화면 초기화
+
+      // 버튼을 "시작" 상태로 초기화
+      startStopBtn.textContent = '시작';
+      startStopBtn.classList.remove('bg-yellow-500', 'hover:bg-yellow-400');
+      startStopBtn.classList.add('bg-green-500', 'hover:bg-green-400');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>계산기</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    }
+    .btn-press {
+      transition: transform 0.08s ease, box-shadow 0.08s ease;
+    }
+    .btn-press:active {
+      transform: scale(0.94);
+    }
+    #display {
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-80 rounded-3xl overflow-hidden shadow-2xl" style="background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1);">
+
+    <!-- 디스플레이 -->
+    <div class="p-6 pb-4">
+      <div id="expression" class="text-right text-gray-400 text-sm h-6 overflow-hidden"></div>
+      <div id="display" class="text-right text-white text-4xl font-light mt-1 min-h-[3rem] leading-tight">0</div>
+    </div>
+
+    <!-- 버튼 그리드 -->
+    <div class="grid grid-cols-4 gap-px bg-white/5 border-t border-white/10">
+
+      <!-- 행 1 -->
+      <button onclick="clearAll()" class="btn-press col-span-2 bg-gray-600/60 hover:bg-gray-500/70 text-white text-xl font-medium py-5">AC</button>
+      <button onclick="toggleSign()" class="btn-press bg-gray-600/60 hover:bg-gray-500/70 text-white text-xl font-medium py-5">+/-</button>
+      <button onclick="inputOperator('/')" class="btn-press bg-orange-500/80 hover:bg-orange-400/90 text-white text-2xl font-medium py-5">÷</button>
+
+      <!-- 행 2 -->
+      <button onclick="inputDigit('7')" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">7</button>
+      <button onclick="inputDigit('8')" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">8</button>
+      <button onclick="inputDigit('9')" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">9</button>
+      <button onclick="inputOperator('*')" class="btn-press bg-orange-500/80 hover:bg-orange-400/90 text-white text-2xl font-medium py-5">×</button>
+
+      <!-- 행 3 -->
+      <button onclick="inputDigit('4')" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">4</button>
+      <button onclick="inputDigit('5')" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">5</button>
+      <button onclick="inputDigit('6')" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">6</button>
+      <button onclick="inputOperator('-')" class="btn-press bg-orange-500/80 hover:bg-orange-400/90 text-white text-2xl font-medium py-5">−</button>
+
+      <!-- 행 4 -->
+      <button onclick="inputDigit('1')" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">1</button>
+      <button onclick="inputDigit('2')" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">2</button>
+      <button onclick="inputDigit('3')" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">3</button>
+      <button onclick="inputOperator('+')" class="btn-press bg-orange-500/80 hover:bg-orange-400/90 text-white text-2xl font-medium py-5">+</button>
+
+      <!-- 행 5 -->
+      <button onclick="inputDigit('0')" class="btn-press col-span-2 bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5 text-left pl-8">0</button>
+      <button onclick="inputDot()" class="btn-press bg-white/10 hover:bg-white/20 text-white text-xl font-light py-5">.</button>
+      <button onclick="calculate()" class="btn-press bg-orange-500 hover:bg-orange-400 text-white text-2xl font-medium py-5">=</button>
+
+    </div>
+  </div>
+
+  <script>
+    let currentValue = '0';
+    let previousValue = '';
+    let operator = null;
+    let shouldResetDisplay = false;
+
+    const display = document.getElementById('display');
+    const expression = document.getElementById('expression');
+
+    function updateDisplay(value) {
+      // 긴 숫자 폰트 축소
+      const len = String(value).length;
+      if (len > 12) display.style.fontSize = '1.5rem';
+      else if (len > 9) display.style.fontSize = '2rem';
+      else display.style.fontSize = '2.25rem';
+      display.textContent = value;
+    }
+
+    function inputDigit(digit) {
+      if (shouldResetDisplay) {
+        currentValue = digit;
+        shouldResetDisplay = false;
+      } else {
+        currentValue = currentValue === '0' ? digit : currentValue + digit;
+      }
+      updateDisplay(currentValue);
+    }
+
+    function inputDot() {
+      if (shouldResetDisplay) { currentValue = '0'; shouldResetDisplay = false; }
+      if (!currentValue.includes('.')) currentValue += '.';
+      updateDisplay(currentValue);
+    }
+
+    function inputOperator(op) {
+      if (operator && !shouldResetDisplay) {
+        performCalculation();
+      }
+      previousValue = currentValue;
+      operator = op;
+      shouldResetDisplay = true;
+      const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+      expression.textContent = `${previousValue} ${opSymbols[op]}`;
+    }
+
+    function performCalculation() {
+      const prev = parseFloat(previousValue);
+      const curr = parseFloat(currentValue);
+      if (isNaN(prev) || isNaN(curr)) return;
+
+      let result;
+      switch (operator) {
+        case '+': result = prev + curr; break;
+        case '-': result = prev - curr; break;
+        case '*': result = prev * curr; break;
+        case '/':
+          if (curr === 0) { updateDisplay('오류'); expression.textContent = ''; operator = null; return; }
+          result = prev / curr;
+          break;
+        default: return;
+      }
+      // 부동소수점 오차 보정
+      currentValue = String(parseFloat(result.toPrecision(12)));
+    }
+
+    function calculate() {
+      if (!operator || shouldResetDisplay) return;
+      const opSymbols = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+      expression.textContent = `${previousValue} ${opSymbols[operator]} ${currentValue} =`;
+      performCalculation();
+      updateDisplay(currentValue);
+      operator = null;
+      shouldResetDisplay = true;
+    }
+
+    function clearAll() {
+      currentValue = '0';
+      previousValue = '';
+      operator = null;
+      shouldResetDisplay = false;
+      expression.textContent = '';
+      updateDisplay('0');
+    }
+
+    function toggleSign() {
+      currentValue = String(parseFloat(currentValue) * -1);
+      updateDisplay(currentValue);
+    }
+
+    // 키보드 지원
+    document.addEventListener('keydown', (e) => {
+      if (e.key >= '0' && e.key <= '9') inputDigit(e.key);
+      else if (e.key === '.') inputDot();
+      else if (e.key === '+') inputOperator('+');
+      else if (e.key === '-') inputOperator('-');
+      else if (e.key === '*') inputOperator('*');
+      else if (e.key === '/') { e.preventDefault(); inputOperator('/'); }
+      else if (e.key === 'Enter' || e.key === '=') calculate();
+      else if (e.key === 'Escape') clearAll();
+      else if (e.key === 'Backspace') {
+        if (currentValue.length > 1) currentValue = currentValue.slice(0, -1);
+        else currentValue = '0';
+        updateDisplay(currentValue);
+      }
+    });
+  </script>
+
+</body>
+</html>
